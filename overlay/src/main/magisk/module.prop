@@ -1,0 +1,6 @@
+id=${applicationId}
+name=Stock-like notch properties for Xiaomi Mi 9 SE${nameSuffix}
+version=${versionName}
+versionCode=${versionCode}
+author=xabolcs
+description=${appDescription}
