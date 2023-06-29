@@ -10,8 +10,11 @@ As the stock rom (e.g. `12.5.1.0 RFBMIXM` / Android 11) says, the notch shape ca
 
 <img src="images/grus-a11-notch-settings.jpg"/>
 
+## Two flavors of Grus Display Cutout Emulation Overlay
+
 This repo contains modules for both shape.
 
+<img src="images/grus-developer-settings-installed.jpg"/>
 
 # Thanks
 
