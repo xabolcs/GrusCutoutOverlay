@@ -1,8 +1,5 @@
 import com.android.utils.appendCapitalized
 import de.undercouch.gradle.tasks.download.Download
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
 
 plugins {
     id ("com.android.application")
@@ -10,13 +7,13 @@ plugins {
 }
 
 android {
-    compileSdk = 31
+    compileSdk = 33
 
     defaultConfig {
         applicationId = "com.github.xabolcs.grus.cutout.stock"
         namespace = applicationId
         minSdk = 28
-        targetSdk = 31
+        targetSdk = 33
         versionCode = 1
         versionName = "1.0"
     }
@@ -31,9 +28,16 @@ android {
 
     signingConfigs {
         all {
-            enableV1Signing = true
+            enableV1Signing = false
             enableV2Signing = true
             enableV3Signing = true
+        }
+        create("release") {
+            val keystore = System.getenv("RELEASE_KEYSTORE")
+            storeFile = if (keystore != null) { File(keystore) } else { null }
+            storePassword = System.getenv("RELEASE_KEYSTORE_PASSPHRASE")
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+            keyPassword = System.getenv("RELEASE_KEY_PASSPHRASE")
         }
     }
 
@@ -56,8 +60,8 @@ android {
             applicationIdSuffix = ".smooth"
 
             val appDescription = "Stock-like notch with smoothened curves"
-            ext.properties["appDescription"] = appDescription
-            ext.properties["nameSuffix"] = " - smoothened"
+            ext["appDescription"] = appDescription
+            ext["nameSuffix"] = " - smoothened"
 
             resValue("string", "label", appDescription)
             resValue("string", "approximation", "M 64 80 L -64 80 L -64 0 L 64 0 L 64 80 Z")
@@ -72,6 +76,17 @@ androidComponents {
             task("packageMagisk${it.name.capitalize()}", Zip::class) {
                 val zipTask = it
                 val fileName = "Grus${"".appendCapitalized(zipTask.flavorName.toString())}Cutout"
+
+                var appDescription = ""
+                var nameSuffix = ""
+                when(zipTask.flavorName){
+                    "stock" -> appDescription = "Stock-like notch"
+                    "smoothStock" -> {
+                        appDescription = "Stock-like notch with smoothened curves"
+                        nameSuffix = " - smoothened"
+                    }
+                }
+
 
                 dependsOn(tasks["package${it.name.capitalize()}"])
 
@@ -91,8 +106,8 @@ androidComponents {
                         "applicationId" to it.applicationId.get(),
                         "versionCode" to it.outputs.first().versionCode.get(),
                         "versionName" to it.outputs.first().versionName.get(),
-                        "nameSuffix" to ext.properties["nameSuffix"],
-                        "appDescription" to ext.properties["appDescription"]
+                        "nameSuffix" to nameSuffix,
+                        "appDescription" to appDescription
                     )
                 }
 
@@ -104,6 +119,6 @@ androidComponents {
 
 tasks.register("downloadModuleInstaller", Download::class) {
     dest("${project.projectDir}/src/main/magisk/META-INF/com/google/android/update-binary")
-    src("https://raw.githubusercontent.com/topjohnwu/Magisk/master/scripts/module_installer.sh")
+    src("https://raw.githubusercontent.com/chenxiaolong/BCR/master/app/magisk/update-binary")
     onlyIfModified(true)
 }
