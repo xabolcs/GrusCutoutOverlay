@@ -13,34 +13,58 @@ if [ -f /sbin/recovery ] || [ -f /system/bin/recovery ]; then
     # Installing via recovery. Always do a direct install.
     set -exu
 
-    ui_print 'Mounting system'
-    if grep /system /proc/mounts; then
-        root_dir=$(grep /system /proc/mounts|cut -d" " -f2)
-        mount -o remount,rw $root_dir
-    elif grep /system /etc/fstab; then
-        root_dir=$(mktemp -d -p /tmp)
-        system_part=$(grep /system /etc/fstab|cut -d" " -f1)
-        system_fs=$(grep /system /etc/fstab|cut -d" " -f3)
-        mount -t $system_fs $system_part $root_dir
-    else
-      ui_print 'system partition not found!'
-      exit 1
-    fi
+    root_dir=""
+    target_dir=""
+    for p in product system; do
+        ui_print "Finding ${p} partition ..."
+        if grep /${p} /proc/mounts; then
+            root_dir=$(grep /${p} /proc/mounts|cut -d" " -f2)
+            mount -o remount,rw $root_dir
+        elif grep /${p} /etc/fstab; then
+            root_dir=$(mktemp -d -p /tmp)
+            p_part=$(grep /${p} /etc/fstab|cut -d" " -f1)
+            p_fs=$(grep /${p} /etc/fstab|cut -d" " -f3)
+            mount -t $p_fs $p_part $root_dir
+        elif [ -d /dev/block/mapper ] && [ -e /dev/block/mapper/${p} ]; then
+            ui_print 'Device with dynamic partitions found'
+            root_dir=$(mktemp -d -p /tmp)
+            mount -o rw -t auto /dev/block/mapper/${p} $root_dir
+        elif [ -d /dev/block/bootdevice/by-name ] && [ -e /dev/block/bootdevice/by-name/${p} ]; then
+            root_dir=$(mktemp -d -p /tmp)
+            mount -o rw -t auto /dev/block/bootdevice/by-name/${p} $root_dir
+        else
+          ui_print "${p} partition not found!"
+        fi
+        if [ -n "$root_dir" ]; then
+            ui_print "Found ${p} at $root_dir"
+            target_dir=$root_dir
+            [ ${p} = "system" ] && target_dir=${target_dir}/system/product
+            break
+        fi
+    done
+
+    [ -z "$root_dir" ] && exit 1
 
     ui_print 'Extracting files'
 
     # Just overwriting isn't sufficient because the apk filenames are different
     # between debug and release builds
-    app_id=$(unzip -p "${ZIPFILE}" module.prop | grep '^id=' | cut -d= -f2)
+    filename=$(unzip -p "${ZIPFILE}" module.prop | grep '^fileName=' | cut -d= -f2)
 
     # rm on some custom recoveries doesn't exit with 0 on ENOENT, even with -f
-    rm -rf "${root_dir}/system/product/overlay/DisplayCutoutEmulation*Overlay/*.apk" || :
+    rm -rfv "${target_dir}/overlay/${filename}/${filename}.apk" || :
 
-    unzip -o "${ZIPFILE}" 'system/*' -d "${root_dir}"
+    extract_dir=$(mktemp -d -p /tmp)
+    unzip -o "${ZIPFILE}" 'system/*' -d "${extract_dir}"
+    mv -v ${extract_dir}/system/product/overlay/* ${target_dir}/overlay
+
+    ui_print 'Cleaning up!'
+    rm -rfv ${extract_dir}
 
     if test $(dirname $root_dir) = "/tmp"; then
-        ui_print 'Unmounting system'
+        ui_print 'Unmounting manually mounted partition'
         umount $root_dir
+        rmdir $root_dir
     fi
 
     ui_print 'Done!'

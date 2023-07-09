@@ -75,7 +75,7 @@ androidComponents {
         afterEvaluate {
             task("packageMagisk${it.name.capitalize()}", Zip::class) {
                 val zipTask = it
-                val fileName = "Grus${"".appendCapitalized(zipTask.flavorName.toString())}Cutout"
+                val fileName = "DisplayCutoutEmulationGrus${"".appendCapitalized(zipTask.flavorName.toString())}"
 
                 var appDescription = ""
                 var nameSuffix = ""
@@ -94,7 +94,7 @@ androidComponents {
                 archiveBaseName.set("${fileName}Magisk")
 
                 from(tasks["package${it.name.capitalize()}"]) {
-                    into("system/product/overlay/DisplayCutoutEmulation${fileName.removeSuffix("Cutout")}Overlay")
+                    into("system/product/overlay/${fileName}")
                     include("*.apk")
                     rename { "${fileName}.apk" }
                 }
@@ -104,6 +104,7 @@ androidComponents {
                 from(project.file("src/main/magisk/module.prop")) {
                     expand(
                         "applicationId" to it.applicationId.get(),
+                        "fileName" to fileName,
                         "versionCode" to it.outputs.first().versionCode.get(),
                         "versionName" to it.outputs.first().versionName.get(),
                         "nameSuffix" to nameSuffix,
