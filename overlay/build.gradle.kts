@@ -65,7 +65,7 @@ android {
 
             resValue("string", "label", appDescription)
             resValue("string", "approximation", "M 64 80 L -64 80 L -64 0 L 64 0 L 64 80 Z")
-            resValue("string", "cutout", "M -145 0 C -100 0 -87 4 -61 47 C -49 67 -28 80 0 80 C 28 80 49 67 61 47 C 87 4 100 0 145 0 L 145 -1 L -145 -1 Z")
+            resValue("string", "cutout", "M -140 0 C -88 0 -78 10 -54 50 C -43 71 -21 80 0 80 C 21 80 43 71 54 50 C 78 10 88 0 140 0 V -1 H -140 Z")
         }
     }
 }
